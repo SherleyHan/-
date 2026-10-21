@@ -1,0 +1,249 @@
+{
+  "info": {
+    "name": "MEXT Survey System API",
+    "description": "文部科学省 调查统计业务系统 - 接口测试集合\n\n覆盖：登录、通知邮件管理、批处理指示状态",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:8080", "type": "string"},
+    {"key": "surveyType", "value": "SY", "type": "string"}
+  ],
+  "item": [
+    {
+      "name": "01. 登录",
+      "item": [
+        {
+          "name": "POST /login - 正常登录",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "url": "{{baseUrl}}/login",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "userId", "value": "admin"},
+                {"key": "password", "value": "password123"}
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('statusCode=0', () => pm.expect(pm.response.json().statusCode).to.eql('0'));",
+                  "pm.test('has userName', () => pm.expect(pm.response.json().userName).to.exist);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /login - 用户名为空",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "url": "{{baseUrl}}/login",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "userId", "value": ""},
+                {"key": "password", "value": "any"}
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('CHECK_ERROR', () => pm.expect(pm.response.json().statusCode).to.eql('1'));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /login - 密码错误",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "url": "{{baseUrl}}/login",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "userId", "value": "admin"},
+                {"key": "password", "value": "wrong"}
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('RESULT_ERROR', () => pm.expect(pm.response.json().statusCode).to.eql('-1'));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /loginConfirm - 写入 session",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "url": "{{baseUrl}}/loginConfirm",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "userId", "value": "admin"},
+                {"key": "password", "value": "password123"}
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('login success', () => pm.expect(pm.response.json().statusCode).to.eql('0'));",
+                  "pm.test('redirect=/menu', () => pm.expect(pm.response.json().redirect).to.eql('/menu'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02. 通知邮件管理",
+      "item": [
+        {
+          "name": "POST /directions2030/detail/SY - 打开编辑画面",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/directions2030/detail/{{surveyType}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('contains form', () => pm.expect(pm.response.text()).to.include('mailAddressEdit'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /directions2030/detail/execute - 正常执行",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "url": "{{baseUrl}}/directions2030/detail/execute",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "gamenSyubetu", "value": "{{surveyType}}"},
+                {"key": "mailList", "value": "pm-a@example.com"},
+                {"key": "mailList", "value": "pm-b@example.com"}
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('statusCode=0', () => pm.expect(pm.response.json().statusCode).to.eql('0'));",
+                  "pm.test('has executionId', () => pm.expect(pm.response.json().message).to.include('指示ID'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /directions2030/detail/execute - 邮箱非法",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "url": "{{baseUrl}}/directions2030/detail/execute",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "gamenSyubetu", "value": "{{surveyType}}"},
+                {"key": "mailList", "value": "not-an-email"}
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('CHECK_ERROR', () => pm.expect(pm.response.json().statusCode).to.eql('1'));"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /directions2030/detail/execute - 未登录",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "url": "{{baseUrl}}/directions2030/detail/execute",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "gamenSyubetu", "value": "{{surveyType}}"},
+                {"key": "mailList", "value": "a@example.com"}
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('redirect to login', () => pm.expect(pm.response.code).to.be.oneOf([302, 401]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /directions2030/detail/compressionDownload",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "url": "{{baseUrl}}/directions2030/detail/compressionDownload",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "gamenSyubetu", "value": "{{surveyType}}"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. 数据库校验脚本（手动执行）",
+      "item": [
+        {
+          "name": "[SQL] 校验 SY 通知邮件数量",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/h2-console",
+            "description": "在 H2 Console 中执行：\nSELECT COUNT(*) FROM notification_mail WHERE survey_type = 'SY';"
+          }
+        },
+        {
+          "name": "[SQL] 校验 WAIT 指示",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/h2-console",
+            "description": "SELECT execution_id, status, start_time, end_time FROM directions_execution WHERE status = 'WAIT' ORDER BY create_date;"
+          }
+        }
+      ]
+    }
+  ]
+}

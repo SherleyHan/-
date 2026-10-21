@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="jp.go.mext.dao.NotificationMailDao">
+
+    <resultMap id="MailResultMap" type="jp.go.mext.dto.NotificationMailDto">
+        <id     column="id"           property="id"/>
+        <result column="survey_type"  property="surveyType"/>
+        <result column="mail_address" property="mailAddress"/>
+        <result column="file_name"    property="fileName"/>
+        <result column="file_ext"     property="fileExt"/>
+        <result column="update_user"  property="updateUser"/>
+        <result column="update_date"  property="updateDate"/>
+    </resultMap>
+
+    <select id="findBySurveyType" resultMap="MailResultMap">
+        SELECT id, survey_type, mail_address, file_name, file_ext, update_user, update_date
+        FROM notification_mail
+        WHERE survey_type = #{surveyType}
+        ORDER BY id
+    </select>
+
+    <select id="findFileConfig" resultMap="MailResultMap">
+        SELECT id, survey_type, mail_address, file_name, file_ext, update_user, update_date
+        FROM notification_mail
+        WHERE survey_type = #{surveyType}
+        ORDER BY id
+        LIMIT 1
+    </select>
+
+    <delete id="deleteBySurveyType">
+        DELETE FROM notification_mail
+        WHERE survey_type = #{surveyType}
+    </delete>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO notification_mail (survey_type, mail_address, file_name, file_ext, update_user)
+        VALUES (#{surveyType}, #{mailAddress}, #{fileName}, #{fileExt}, #{updateUser})
+    </insert>
+
+    <insert id="batchInsert">
+        INSERT INTO notification_mail (survey_type, mail_address, file_name, file_ext, update_user)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.surveyType}, #{item.mailAddress}, #{item.fileName}, #{item.fileExt}, #{item.updateUser})
+        </foreach>
+    </insert>
+
+    <select id="countBySurveyType" resultType="int">
+        SELECT COUNT(*) FROM notification_mail WHERE survey_type = #{surveyType}
+    </select>
+
+</mapper>
