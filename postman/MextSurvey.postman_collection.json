@@ -11,6 +11,7 @@
   "item": [
     {
       "name": "01. 登录",
+      "description": "按顺序执行：/login 预校验 → /loginConfirm 写入 session，后续模块依赖此 session",
       "item": [
         {
           "name": "POST /login - 正常登录",
@@ -184,7 +185,51 @@
           ]
         },
         {
-          "name": "POST /directions2030/detail/execute - 未登录",
+          "name": "POST /directions2030/detail/compressionDownload",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "url": "{{baseUrl}}/directions2030/detail/compressionDownload",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "gamenSyubetu", "value": "{{surveyType}}"}
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.expect(pm.response.code).to.eql(200));",
+                  "pm.test('是文件下载', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/octet-stream'));",
+                  "pm.test('带 attachment 头', () => pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /logout - 注销（为下一条未登录用例准备）",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('注销成功', () => pm.expect(pm.response.json().statusCode).to.eql('0'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /directions2030/detail/execute - 未登录（必须放在本文件夹最后）",
+          "protocolProfileBehavior": {"followRedirects": false},
           "request": {
             "method": "POST",
             "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
@@ -199,28 +244,27 @@
           },
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// newman / Collection Runner 共用 cookie jar，仅靠 pm.cookies.clear() 不生效；",
+                  "// 真正的登出由前一条 POST /logout 完成（服务端 invalidate 后 JSESSIONID 失效）",
+                  "pm.cookies.clear();"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('redirect to login', () => pm.expect(pm.response.code).to.be.oneOf([302, 401]));"
+                  "// LoginInterceptor 未登录时 sendRedirect 到 /loginZ000；",
+                  "// 必须关闭跟随重定向，否则会拿到登录页的 200 HTML",
+                  "pm.test('未登录 → 302 跳转登录页', () => pm.expect(pm.response.code).to.eql(302));",
+                  "pm.test('跳转到 loginZ000', () => pm.expect(pm.response.headers.get('Location')).to.include('loginZ000'));"
                 ]
               }
             }
           ]
-        },
-        {
-          "name": "POST /directions2030/detail/compressionDownload",
-          "request": {
-            "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
-            "url": "{{baseUrl}}/directions2030/detail/compressionDownload",
-            "body": {
-              "mode": "urlencoded",
-              "urlencoded": [
-                {"key": "gamenSyubetu", "value": "{{surveyType}}"}
-              ]
-            }
-          }
         }
       ]
     },
